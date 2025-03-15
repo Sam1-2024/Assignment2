@@ -1,0 +1,97 @@
+---
+title: "Assignment2"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(haven)
+library(visualize)
+library(flexplot)
+#importing sav file
+data <- read_sav("PSYR6003.A2.sav")
+view(data)
+#recoding sex as a factor variable, 0=female, 1=male
+data1 <- data %>% mutate(sex = factor(sex, levels = c("Female", "Male"), labels = c(0, 1)))
+view(data1)
+# Total missing values
+sum(is.na(data1)) 
+# Removes rows with any missing values
+data2 <- na.omit(data1)  
+view(data2)
+#new dataset called data3 containing the Reverse coding for tipm.CONS2.3y
+data3 <- data2 %>% mutate(tipm.CONS2.3y = 6 - tipm.CONS2.3y)  
+View(data3)
+#calculating Subscale total means for socially prescribed perfectionism, conscientiousness, and negative affect.
+data4 <- data3 %>% mutate(SPP_total = rowMeans(select(., mps.SPP1.3y, mps.SPP2.3y, mps.SPP3.3y, mps.SPP4.3y, mps.SPP5.3y), na.rm = TRUE),Conscientiousness_total = rowMeans(select(., tipm.CONS1.3y, tipm.CONS2.3y), na.rm = TRUE),NegativeAffect_total = rowMeans(select(., guilt1.3y, guilt2.3y, guilt3.3y, dep1.3y, dep2.3y, dep3.3y,fear1.3y, fear2.3y, fear3.3y, host1.3y, host2.3y, host3.3y), na.rm = TRUE))
+view(data4)
+#computing sex count for female and male.
+sex_counts <- data3 %>%count(sex)
+print(sex_counts)
+# Computing means and standard deviations for NegativeAffect,SPP,sex and conscientiousness
+summary_stats <- data4 %>% select(SPP_total, Conscientiousness_total, NegativeAffect_total, sex) %>% summarise(Mean_SPP = mean(SPP_total, na.rm = TRUE),SD_SPP = sd(SPP_total, na.rm = TRUE),Min_SPP = min(SPP_total, na.rm = TRUE),Max_SPP = max(SPP_total, na.rm = TRUE),Mean_Conscientiousness = mean(Conscientiousness_total, na.rm = TRUE),SD_Conscientiousness = sd(Conscientiousness_total, na.rm = TRUE),Min_Conscientiousness = min(Conscientiousness_total, na.rm = TRUE),Max_Conscientiousness = max(Conscientiousness_total, na.rm = TRUE),Mean_NegativeAffect = mean(NegativeAffect_total, na.rm = TRUE),SD_NegativeAffect = sd(NegativeAffect_total, na.rm = TRUE),Min_NegativeAffect = min(NegativeAffect_total, na.rm = TRUE),Max_NegativeAffect = max(NegativeAffect_total, na.rm = TRUE),Mean_Sex = mean(as.numeric(sex), na.rm = TRUE), SD_Sex = sd(as.numeric(sex), na.rm = TRUE),Min_Sex = min(as.numeric(sex), na.rm = TRUE),Max_Sex = max(as.numeric(sex), na.rm = TRUE))
+View(summary_stats)
+#computing mean and standard deviation for Negative Affect, SPP and Conscientiousness by genger, male and female.
+summary_stats2 <- data4%>% select(SPP_total, Conscientiousness_total, NegativeAffect_total, sex) %>% 
+  group_by(sex) %>% summarise(
+    Mean_SPP = mean(SPP_total, na.rm = TRUE),
+    SD_SPP = sd(SPP_total, na.rm = TRUE),
+    Min_SPP = min(SPP_total, na.rm = TRUE),
+    Max_SPP = max(SPP_total, na.rm = TRUE),
+    
+    Mean_Conscientiousness = mean(Conscientiousness_total, na.rm = TRUE),
+    SD_Conscientiousness = sd(Conscientiousness_total, na.rm = TRUE),
+    Min_Conscientiousness = min(Conscientiousness_total, na.rm = TRUE),
+    Max_Conscientiousness = max(Conscientiousness_total, na.rm = TRUE),
+    
+    Mean_NegativeAffect = mean(NegativeAffect_total, na.rm = TRUE),
+    SD_NegativeAffect = sd(NegativeAffect_total, na.rm = TRUE),
+    Min_NegativeAffect = min(NegativeAffect_total, na.rm = TRUE),
+    Max_NegativeAffect = max(NegativeAffect_total, na.rm = TRUE)
+  )
+view(summary_stats2)
+
+#visualizing the univariate distribution.
+flexplot(NegativeAffect_total~1, data=data4)
+flexplot(sex~1, data=data4)
+flexplot(Conscientiousness_total~1, data=data4)
+flexplot(SPP_total~1, data=data4)
+#visualizing bivariate distribution
+flexplot(NegativeAffect_total~SPP_total , data = data4)
+flexplot(NegativeAffect_total~Conscientiousness_total , data = data4)
+flexplot(NegativeAffect_total~sex , data = data4)
+#visualizing multivaraite distribution   
+flexplot(NegativeAffect_total~Conscientiousness_total+SPP_total+sex, data=data4,method="lm")
+flexplot(NegativeAffect_total~Conscientiousness_total+SPP_total|sex, data=data4,method="lm")
+#running the model
+model <- lm(NegativeAffect_total~ sex+Conscientiousness_total + SPP_total , data = data4)
+#visualizing the model
+visualize(model, plot="residuals")
+# residuals extraction and performing the Shapiro-Wilk test
+residuals <- residuals(model)
+shapiro.test(residuals)
+#running the full model for hypothesis 1 
+full <- lm(NegativeAffect_total~Conscientiousness_total+SPP_total+sex, data=data4)
+#running reduced model for the first hypothesis
+reduced<- lm(NegativeAffect_total~1, data=data4)
+#Comparing full and reduced Model
+model.comparison(reduced, full)
+#estimates stats
+estimates(full)
+##Summary Stats
+summary(model)
+#run full model for hypothesis 2 
+full <- lm(NegativeAffect_total~Conscientiousness_total+SPP_total+sex, data=data4)
+#run reduced model for hypothesis 2 where sex and conscientiousness is controlled.
+reduced<- lm(NegativeAffect_total~sex+Conscientiousness_total, data=data4)
+#Comparing full and reduced Model
+model.comparison(reduced, full)
+#estimates stats
+estimates(full)
+##Summary Stats
+summary(model)
+
+
+```
